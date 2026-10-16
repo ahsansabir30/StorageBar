@@ -51,6 +51,9 @@ jobs:
       - name: Package a local (unsigned) DMG to prove the packaging script works
         run: scripts/build-release.sh
 
+      - name: Reproducibility - two independent builds must be byte-identical
+        run: scripts/verify-reproducible.sh
+
       - name: Upload the unsigned DMG for inspection (not a release artefact)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

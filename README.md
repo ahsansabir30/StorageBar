@@ -109,5 +109,11 @@ tests and `analyze` locally, open a pull request, and merge once CI is green. Us
   checksums, then creates the GitHub Release. It refuses to run, and publishes nothing, if any
   credential is missing.
 
+### Security
+See [SECURITY.md](SECURITY.md). Every build is checked by `scripts/build-release.sh`: the only
+entitlement is the App Sandbox (no debugger-attach or network entitlements), no networking code is
+linked, and no debug or test hooks are in the Release binary. `scripts/verify-reproducible.sh`
+(also run in CI) builds twice in different directories and requires byte-identical output.
+
 ### Licence
 [MIT](LICENSE).
