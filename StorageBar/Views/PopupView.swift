@@ -17,6 +17,8 @@ struct PopupView: View {
         .padding(.top, 14)
         .padding(.bottom, 8)
         .frame(width: 300)
+        .background(PopupWindowReader { model.popupWindow = $0 })
+        .onExitCommand { model.dismissPopup() }
         .task { await model.monitor.refresh() }
     }
 
@@ -97,9 +99,7 @@ private struct StorageSummary: View {
                         .font(.title3)
                         .foregroundStyle(.secondary)
                 }
-                Text(snapshot.purgeableBytes > 0
-                    ? "Available · includes \(ByteFormatter.detailed(snapshot.purgeableBytes)) purgeable"
-                    : "Available")
+                Text("Available")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -112,8 +112,8 @@ private struct StorageSummary: View {
                     Text("\(ByteFormatter.detailed(snapshot.totalBytes)) total")
                 }
                 .lineLimit(1)
-                .minimumScaleFactor(0.85)
-                .font(.caption)
+                .minimumScaleFactor(0.8)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
             }
@@ -143,9 +143,6 @@ private struct StorageSummary: View {
             "\(snapshot.volumeName), \(ByteFormatter.detailed(snapshot.availableBytes)) available",
             "\(ByteFormatter.detailed(snapshot.usedBytes)) used of \(ByteFormatter.detailed(snapshot.totalBytes)), \(snapshot.usedPercent) percent",
         ]
-        if snapshot.purgeableBytes > 0 {
-            parts.append("includes \(ByteFormatter.detailed(snapshot.purgeableBytes)) purgeable")
-        }
         if let levelNotice { parts.append(levelNotice) }
         if refreshFailed { parts.append("Couldn’t refresh, showing the last reading") }
         parts.append("Updated \(snapshot.date.formatted(date: .omitted, time: .shortened))")
@@ -165,6 +162,23 @@ private struct StatusNote: View {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(color)
         }
         .font(.caption)
+    }
+}
+
+/// Hands the hosting window to the model so it can be dismissed on outside clicks.
+private struct PopupWindowReader: NSViewRepresentable {
+    let onWindow: (NSWindow) -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { [weak view] in
+            if let window = view?.window { onWindow(window) }
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        if let window = nsView.window { onWindow(window) }
     }
 }
 

@@ -11,6 +11,9 @@ final class AppModel {
     @ObservationIgnored private let alerter: LowStorageAlerter
     @ObservationIgnored private let loginItem: any LoginItemControlling
     @ObservationIgnored private var wakeTask: Task<Void, Never>?
+    @ObservationIgnored private var clickMonitor: Any?
+    /// The MenuBarExtra popup window, captured by the popup view.
+    @ObservationIgnored weak var popupWindow: NSWindow?
 
     private(set) var launchAtLogin: Bool
     private(set) var loginItemNeedsApproval: Bool
@@ -36,6 +39,7 @@ final class AppModel {
     func start() {
         monitor.onSnapshot = { [alerter] snapshot in await alerter.handle(snapshot) }
         restartPolling()
+        installOutsideClickMonitor()
         wakeTask?.cancel()
         wakeTask = Task { [weak self] in
             let wake = NSWorkspace.shared.notificationCenter.notifications(named: NSWorkspace.didWakeNotification)
@@ -45,7 +49,24 @@ final class AppModel {
         }
     }
 
+    /// A click in any other app, the desktop or another status item never reaches this app, so a
+    /// global monitor is the reliable signal to close the popup (it may never become key window).
+    private func installOutsideClickMonitor() {
+        if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
+        clickMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        ) { [weak self] _ in
+            Task { @MainActor in self?.dismissPopup() }
+        }
+    }
+
+    func dismissPopup() {
+        if let window = popupWindow, window.isVisible { window.orderOut(nil) }
+    }
+
     func stop() {
+        if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
+        clickMonitor = nil
         monitor.stop()
         wakeTask?.cancel()
         wakeTask = nil

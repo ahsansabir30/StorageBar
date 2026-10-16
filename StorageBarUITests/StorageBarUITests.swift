@@ -51,6 +51,24 @@ final class StorageBarUITests: XCTestCase {
         }
     }
 
+    func testPopupClosesWhenClickingOutside() throws {
+        try openPopup()
+        // Click well away from the popup, on whatever is behind it.
+        statusItem.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .withOffset(CGVector(dx: -700, dy: 500))
+            .click()
+        let refresh = element("refreshButton")
+        XCTAssertTrue(
+            NSPredicate(format: "exists == false").evaluate(with: refresh) || waitUntilGone(refresh),
+            "Popup stayed open after clicking outside"
+        )
+    }
+
+    private func waitUntilGone(_ element: XCUIElement, timeout: TimeInterval = 5) -> Bool {
+        let expectation = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: element)
+        return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
+    }
+
     func testPreferencesWindowOpensFromPopup() throws {
         try openPopup()
         let button = element("preferencesButton")

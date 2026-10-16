@@ -5,12 +5,17 @@ struct MenuBarLabel: View {
     let model: AppModel
 
     var body: some View {
-        HStack(spacing: 4) {
+        // A system Label lets the menu bar align symbol and text itself; a hand-built stack drifted.
+        Group {
             if model.preferences.effectiveShowIcon {
-                Image(systemName: "internaldrive")
+                Label(text, systemImage: "internaldrive")
+                    .labelStyle(.titleAndIcon)
+            } else {
+                Text(text)
             }
-            Text(text).monospacedDigit()
         }
+        .monospacedDigit()
+        .fixedSize()  // a status item must never truncate its value
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spokenLabel)
         .accessibilityIdentifier("menuBarLabel")
