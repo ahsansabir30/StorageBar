@@ -25,12 +25,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !isRunningUnitTests else { return }
 
         // A second copy (e.g. run straight from a disk image) must not add a second menu bar item.
-        if let existing = NSRunningApplication
+        // The older copy always wins (ties broken by pid), so two simultaneous launches cannot
+        // both quit and leave no item.
+        let me = NSRunningApplication.current
+        let older = NSRunningApplication
             .runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
-            .first(where: { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }) {
-            existing.activate()
-            NSApp.terminate(nil)
-            return
+            .first { other in
+                guard other.processIdentifier != me.processIdentifier else { return false }
+                let (theirs, mine) = (other.launchDate ?? .distantFuture, me.launchDate ?? .distantFuture)
+                return theirs < mine || (theirs == mine && other.processIdentifier < me.processIdentifier)
+            }
+        if let older {
+            older.activate()
+            exit(0)
         }
 
         let model = AppModel()
@@ -42,7 +49,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Launching the app again while it runs (Finder, Spotlight) reveals the item's popup, which
     /// is the way back if the menu bar item was hidden or dragged away.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        controller?.togglePopover()
+        controller?.showPopover()
         return false
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        model?.stop()
+        controller?.tearDown()
     }
 }

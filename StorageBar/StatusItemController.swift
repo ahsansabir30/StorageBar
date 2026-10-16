@@ -78,16 +78,16 @@ final class StatusItemController: NSObject {
         }
     }
 
-    /// Public so a relaunch of the running app can reveal the item.
     func togglePopover() {
-        guard let button = statusItem.button else { return }
-        if popover.isShown {
-            popover.performClose(nil)
-        } else {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            NSApp.activate()
-            popover.contentViewController?.view.window?.makeKey()
-        }
+        popover.isShown ? popover.performClose(nil) : showPopover()
+    }
+
+    /// Also used when the running app is launched again, to reveal the item.
+    func showPopover() {
+        guard !popover.isShown, let button = statusItem.button, button.window?.isVisible == true else { return }
+        NSApp.activate()
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.contentViewController?.view.window?.makeKey()
     }
 
     private func showContextMenu() {
@@ -121,8 +121,8 @@ final class StatusItemController: NSObject {
             window.title = "StorageBar Preferences"
             window.styleMask = [.titled, .closable]
             window.isReleasedWhenClosed = false
-            window.setFrameAutosaveName("preferences")
-            window.center()
+            window.center()                          // first-run position...
+            window.setFrameAutosaveName("preferences")  // ...replaced by the user's saved frame, if any
             preferencesWindow = window
         }
         NSApp.activate()
