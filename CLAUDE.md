@@ -3,7 +3,7 @@
 Native macOS menu bar utility that shows free space on the startup volume (e.g. `128 GB`).
 Click for a popup (name, total, used, available, % used, usage bar, last refresh, Refresh,
 Open Storage Settings, Preferences, Quit). Optional low-storage notifications and launch at login.
-Targets macOS 15+ on Apple Silicon (arm64). Swift 6, SwiftUI views hosted by an AppKit `NSStatusItem` + `NSPopover`. No third-party
+Targets macOS 15+ on Apple Silicon (arm64). Swift 6, SwiftUI views hosted by an AppKit `NSStatusItem` + `NSMenu`. No third-party
 dependencies, no network, no telemetry, no private APIs, no Full Disk Access, no file scanning.
 
 ## Commands
@@ -32,7 +32,7 @@ StorageBar/            app target (Xcode folder-synchronised group: new files ar
                        monitor, system services (notifications, login item)
   Views/               SwiftUI: PopupView, PreferencesView
   AppModel.swift       composition root (wiring only)
-  StatusItemController.swift  NSStatusItem (autosaveName "StorageBar"), popover, right-click menu, Preferences window
+  StatusItemController.swift  NSStatusItem (autosaveName "StorageBar"), NSMenu hosting the SwiftUI popup, Preferences window
   StorageBarApp.swift  @main + AppDelegate (single-instance guard, reopen reveals popup)
   AppInfo.swift        About panel, repo URL, licence
   Assets.xcassets      app icon (regenerate with scripts/make-icon.swift)

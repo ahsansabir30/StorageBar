@@ -44,6 +44,16 @@ final class StorageBarUITests: XCTestCase {
         XCTFail("Popup did not open after repeated clicks")
     }
 
+    /// With the menu bar set to auto-hide, the bar must stay revealed while the popup is open, even
+    /// after the pointer leaves the menu bar and moves onto the popup.
+    func testMenuBarStaysRevealedWhilePopupIsOpen() throws {
+        try openPopup()
+        element("refreshButton").hover()           // pointer now well below the menu bar
+        Thread.sleep(forTimeInterval: 3)
+        XCTAssertTrue(element("refreshButton").exists, "Popup closed after the pointer left the menu bar")
+        XCTAssertTrue(statusItem.isHittable, "Menu bar hid while the popup was open")
+    }
+
     func testThereIsExactlyOneStatusItem() throws {
         XCTAssertTrue(statusItem.waitForExistence(timeout: 10))
         XCTAssertEqual(app.statusItems.matching(identifier: "menuBarLabel").count, 1)

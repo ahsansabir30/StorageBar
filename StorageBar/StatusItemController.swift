@@ -2,43 +2,59 @@ import AppKit
 import Observation
 import SwiftUI
 
-/// Owns the menu bar status item, its popover, the right-click menu and the Preferences window.
+/// Hosting view that accepts the click that opens a menu item, so the first click on a row works.
+private final class MenuHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
+/// Owns the menu bar status item, the popup and the Preferences window.
 ///
 /// Uses `NSStatusItem` rather than `MenuBarExtra` because it gives the item a stable
 /// `autosaveName` (so macOS persists its position under a StorageBar-specific key instead of the
-/// generic `Item-0`), lets a transient popover close itself on outside clicks, and supports a
-/// right-click menu.
+/// generic `Item-0`) and control over how the popup is presented.
+///
+/// The popup is the SwiftUI view hosted inside an `NSMenu` item, not a popover: a real menu keeps
+/// an auto-hidden menu bar revealed while it is open (a popover does not), and closes natively on
+/// outside clicks and Esc.
 @MainActor
-final class StatusItemController: NSObject {
+final class StatusItemController: NSObject, NSMenuDelegate {
     static let autosaveName = "StorageBar"
 
     private let model: AppModel
     private let statusItem: NSStatusItem
-    private let popover = NSPopover()
+    private let menu = NSMenu()
+    private let popupView: MenuHostingView<PopupView>
     private var preferencesWindow: NSWindow?
 
     init(model: AppModel) {
         self.model = model
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        // The closures need `self`, which does not exist until super.init; route through a box.
+        let actions = PopupActions()
+        popupView = MenuHostingView(rootView: PopupView(
+            model: model,
+            openPreferences: { actions.openPreferences() },
+            dismiss: { actions.dismiss() }
+        ))
         super.init()
+        actions.openPreferences = { [weak self] in
+            // Let the menu finish closing before a window takes focus.
+            self?.menu.cancelTracking()
+            DispatchQueue.main.async { self?.showPreferences() }
+        }
+        actions.dismiss = { [weak self] in self?.menu.cancelTracking() }
 
         statusItem.autosaveName = Self.autosaveName
         if let button = statusItem.button {
-            button.target = self
-            button.action = #selector(statusItemClicked(_:))
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.imagePosition = .imageLeading
             button.setAccessibilityIdentifier("menuBarLabel")
         }
 
-        let content = NSHostingController(rootView: PopupView(
-            model: model,
-            openPreferences: { [weak self] in self?.showPreferences() },
-            dismiss: { [weak self] in self?.popover.performClose(nil) }
-        ))
-        content.sizingOptions = [.preferredContentSize]
-        popover.contentViewController = content
-        popover.behavior = .transient
+        let item = NSMenuItem()
+        item.view = popupView
+        menu.addItem(item)
+        menu.delegate = self
+        statusItem.menu = menu
 
         trackModel()
     }
@@ -67,55 +83,32 @@ final class StatusItemController: NSObject {
         button.setAccessibilityLabel(snapshot.map { preferences.displayFormat.spokenText(for: $0) } ?? "Storage, reading")
     }
 
-    // MARK: Actions
+    // MARK: Menu
 
-    @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
-        let event = NSApp.currentEvent
-        if event?.type == .rightMouseUp || event?.modifierFlags.contains(.control) == true {
-            showContextMenu()
-        } else {
-            togglePopover()
-        }
+    func menuWillOpen(_ menu: NSMenu) {
+        // A menu measures its custom view once when it opens, so size it to the current content.
+        popupView.layoutSubtreeIfNeeded()
+        popupView.frame.size = popupView.fittingSize
+        Task { await model.monitor.refresh() }
     }
 
-    func togglePopover() {
-        popover.isShown ? popover.performClose(nil) : showPopover()
+    /// Opens the menu, e.g. when the running app is launched again, to reveal the item.
+    func showMenu() {
+        guard let button = statusItem.button, button.window?.isVisible == true else { return }
+        button.performClick(nil)
     }
-
-    /// Also used when the running app is launched again, to reveal the item.
-    func showPopover() {
-        guard !popover.isShown, let button = statusItem.button, button.window?.isVisible == true else { return }
-        NSApp.activate()
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        popover.contentViewController?.view.window?.makeKey()
-    }
-
-    private func showContextMenu() {
-        let menu = NSMenu()
-        menu.addItem(withTitle: "About StorageBar", action: #selector(about), keyEquivalent: "").target = self
-        menu.addItem(withTitle: "Preferences…", action: #selector(preferences), keyEquivalent: ",").target = self
-        menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit StorageBar", action: #selector(quit), keyEquivalent: "q").target = self
-        // Attaching the menu only for this click keeps left-click opening the popover.
-        statusItem.menu = menu
-        statusItem.button?.performClick(nil)
-        statusItem.menu = nil
-    }
-
-    @objc private func about() { AppInfo.showAbout() }
-    @objc private func preferences() { showPreferences() }
-    @objc private func quit() { NSApp.terminate(nil) }
 
     /// Removes the item from the menu bar (used by tests and on termination).
     func tearDown() {
-        popover.performClose(nil)
+        menu.cancelTracking()
         NSStatusBar.system.removeStatusItem(statusItem)
     }
+
+    // MARK: Preferences
 
     var isPreferencesVisible: Bool { preferencesWindow?.isVisible == true }
 
     func showPreferences() {
-        popover.performClose(nil)
         if preferencesWindow == nil {
             let window = NSWindow(contentViewController: NSHostingController(rootView: PreferencesView(model: model)))
             window.title = "StorageBar Preferences"
@@ -128,4 +121,11 @@ final class StatusItemController: NSObject {
         NSApp.activate()
         preferencesWindow?.makeKeyAndOrderFront(nil)
     }
+}
+
+/// Late-bound closures for the popup, set once the controller exists.
+@MainActor
+private final class PopupActions {
+    var openPreferences: () -> Void = {}
+    var dismiss: () -> Void = {}
 }

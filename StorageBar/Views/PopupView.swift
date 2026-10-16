@@ -18,7 +18,6 @@ struct PopupView: View {
         .padding(.top, 14)
         .padding(.bottom, 8)
         .frame(width: 300)
-        .task { await model.monitor.refresh() }
     }
 
     @ViewBuilder
@@ -47,17 +46,17 @@ struct PopupView: View {
 
     private var actions: some View {
         VStack(alignment: .leading, spacing: 0) {
-            MenuRow("Refresh", systemImage: "arrow.clockwise", id: "refreshButton", key: "r") {
+            MenuRow("Refresh", systemImage: "arrow.clockwise", id: "refreshButton") {
                 Task { await model.monitor.refresh() }
             }
             MenuRow("Open Storage Settings", systemImage: "gearshape", id: "storageSettingsButton") {
                 dismiss()
                 NSWorkspace.shared.open(Self.storageSettingsURL)
             }
-            MenuRow("Preferences…", systemImage: "slider.horizontal.3", id: "preferencesButton", key: ",") {
+            MenuRow("Preferences…", systemImage: "slider.horizontal.3", id: "preferencesButton") {
                 openPreferences()
             }
-            MenuRow("Quit StorageBar", systemImage: "power", id: "quitButton", key: "q") {
+            MenuRow("Quit StorageBar", systemImage: "power", id: "quitButton") {
                 NSApp.terminate(nil)
             }
         }
@@ -169,17 +168,15 @@ private struct MenuRow: View {
     let title: String
     let systemImage: String
     let id: String
-    let key: Character?
     let action: () -> Void
 
     @State private var isHovering = false
     @Environment(\.isFocused) private var isFocused
 
-    init(_ title: String, systemImage: String, id: String, key: Character? = nil, action: @escaping () -> Void) {
+    init(_ title: String, systemImage: String, id: String, action: @escaping () -> Void) {
         self.title = title
         self.systemImage = systemImage
         self.id = id
-        self.key = key
         self.action = action
     }
 
@@ -192,11 +189,6 @@ private struct MenuRow: View {
                     .accessibilityHidden(true)
                 Text(title)
                 Spacer(minLength: 12)
-                if let key {
-                    Text("⌘\(String(key).uppercased())")
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                }
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
@@ -209,7 +201,6 @@ private struct MenuRow: View {
         }
         .buttonStyle(.plain)
         .onHover { isHovering = $0 }
-        .keyboardShortcut(key.map { KeyboardShortcut(KeyEquivalent($0), modifiers: .command) })
         .accessibilityIdentifier(id)
     }
 }
