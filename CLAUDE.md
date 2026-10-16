@@ -3,7 +3,7 @@
 Native macOS menu bar utility that shows free space on the startup volume (e.g. `128 GB`).
 Click for a popup (name, total, used, available, % used, usage bar, last refresh, Refresh,
 Open Storage Settings, Preferences, Quit). Optional low-storage notifications and launch at login.
-Targets macOS 15+ on Apple Silicon (arm64). Swift 6, SwiftUI, `MenuBarExtra`. No third-party
+Targets macOS 15+ on Apple Silicon (arm64). Swift 6, SwiftUI views hosted by an AppKit `NSStatusItem` + `NSPopover`. No third-party
 dependencies, no network, no telemetry, no private APIs, no Full Disk Access, no file scanning.
 
 ## Commands
@@ -30,13 +30,19 @@ popup tests skip. Report skipped tests as skipped, never as passed.
 StorageBar/            app target (Xcode folder-synchronised group: new files are picked up automatically)
   Core/                logic with no UI: snapshot + provider, formatting, thresholds, preferences,
                        monitor, system services (notifications, login item)
-  Views/               SwiftUI: MenuBarLabel, PopupView, PreferencesView
+  Views/               SwiftUI: PopupView, PreferencesView
   AppModel.swift       composition root (wiring only)
-  StorageBarApp.swift  @main, MenuBarExtra + suppressed Preferences window
+  StatusItemController.swift  NSStatusItem (autosaveName "StorageBar"), popover, right-click menu, Preferences window
+  StorageBarApp.swift  @main + AppDelegate (single-instance guard, reopen reveals popup)
+  AppInfo.swift        About panel, repo URL, licence
+  Assets.xcassets      app icon (regenerate with scripts/make-icon.swift)
 StorageBarTests/       Swift Testing unit tests (hosted by the app)
 StorageBarUITests/     XCUITest against the launched app
 Config/                entitlements (sandbox only)
 docs/ARCHITECTURE.md   design and metric definitions
+docs/RELEASING.md      signing, notarisation, release process
+scripts/               build-release.sh (DMG), make-icon.swift
+.github/workflows/     ci.yml, release.yml
 .claude/rules/         swift.md, architecture.md, testing.md, design.md (UI decisions)
 ```
 
@@ -56,6 +62,9 @@ file). Edit the pbxproj by hand only for build settings/targets; never list sour
 - Detailed standards: `.claude/rules/*.md`. Do not duplicate them here or restate ECC's rules.
 
 ## Git
+
+Branch from `main` (`feature/…`, `fix/…`), open a PR, merge when CI is green; never force-push `main`.
+Push only after unit tests and `analyze` pass. Commits use the GitHub noreply address, not a personal email.
 
 Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`), small focused
 commits, imperative subject under 72 chars, body explains why. Never commit `build/`, derived

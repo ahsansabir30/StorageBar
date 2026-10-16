@@ -3,7 +3,7 @@
 A deliberately small set of rules. Prefer semantic system styles over constants.
 
 ## Principles
-- Native first: system controls (`Form(.grouped)`, `Picker`, `Toggle`), system fonts, SF Symbols, semantic colours. No custom background on the popup: the `MenuBarExtra` window supplies the system material. No gradients, shadows, cards, or glass effects of our own.
+- Native first: system controls (`Form(.grouped)`, `Picker`, `Toggle`), system fonts, SF Symbols, semantic colours. No custom background on the popup: the `NSPopover` supplies the system material. No gradients, shadows, cards, or glass effects of our own.
 - One focal point per surface. Popup: the available-space figure. Everything else is `.secondary` and smaller.
 - Every element earns its place; no explanatory paragraphs. One short sentence maximum for error/permission notes.
 - No animation. State changes are immediate (also satisfies Reduce Motion).
@@ -30,7 +30,7 @@ SF Symbols only, default weight, one 18 pt column for row icons, `.secondary` co
 ## Accessibility
 - Combine read-only groups into one element with a full spoken sentence; hide decorative bars.
 - Controls keep their own elements; each has an `accessibilityIdentifier`.
-- Menu bar label has a spoken label ("275.1 GB available").
+- The status item button has a spoken label ("275.1 GB available") via `DisplayFormat.spokenText`.
 - Keyboard: ⌘R refresh, ⌘, preferences, ⌘Q quit.
 
 ## Preferences structure

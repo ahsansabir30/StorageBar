@@ -3,7 +3,7 @@
 Full description and metric definitions: `docs/ARCHITECTURE.md`.
 
 ## Layers and dependencies
-- `Core/` (logic, no SwiftUI/AppKit UI types) <- `Views/` (SwiftUI) <- `StorageBarApp`. Dependencies point inward only; `Core/` never imports `Views/`.
+- `Core/` (logic, no SwiftUI/AppKit UI types) <- `Views/` (SwiftUI) <- `StatusItemController`/`StorageBarApp` (AppKit shell). Dependencies point inward only; `Core/` never imports `Views/`.
 - `AppModel` is the single composition root: constructs services, injects dependencies, starts polling. It contains wiring, not business rules.
 - System boundaries sit behind small protocols so tests can substitute fakes: `StorageProviding`, `Notifying`, `LoginItemControlling`. Add a protocol only where a real boundary (OS service) exists. No protocols for pure functions.
 - No third-party packages. Justify in the PR/commit message and `docs/ARCHITECTURE.md` before adding any.
