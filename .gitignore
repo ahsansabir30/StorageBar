@@ -4,3 +4,10 @@ DerivedData/
 *.xcuserstate
 xcuserdata/
 .claude/settings.local.json
+dist/
+*.p12
+*.p8
+*.cer
+*.mobileprovision
+.env
+.env.*
