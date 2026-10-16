@@ -26,13 +26,20 @@ to bypass Gatekeeper.
 Keep the `.p12`, its password and the `.p8` out of the repository and out of chat. They go only into
 GitHub secrets or your keychain.
 
-## GitHub Environment and secrets
+## Repository protections (already configured)
 
-The release job runs in an Environment named `release`. Create it (Settings › Environments), add
-yourself as a **required reviewer**, and restrict it to the `main` branch, so a release cannot start
-without your approval. Also protect `main` and add a tag protection rule for `v*`.
+- Ruleset **Protect main**: changes only by pull request, the `build-and-test` check must pass, no
+  force-push, no deletion. No bypass actors.
+- Ruleset **Protect release tags**: `v*` tags cannot be moved or deleted.
+- Environment **release**: required reviewer `ahsansabir30`, deployable from `main` only. The release
+  job waits for that approval before any step (and any secret) is available.
+- Actions: only GitHub-owned actions are allowed and every `uses:` must be pinned to a commit SHA.
+  Dependabot proposes weekly updates to those pins. Secret scanning, push protection, Dependabot
+  alerts/security updates and private vulnerability reporting are on.
 
-Store the secrets **in that Environment** (Settings › Environments › release), or with the CLI
+## GitHub secrets
+
+Store the secrets **in the `release` Environment** (Settings › Environments › release), or with the CLI
 (prompts for the value; add `--env release`):
 
 ```bash
