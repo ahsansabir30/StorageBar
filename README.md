@@ -125,7 +125,9 @@ tests and `analyze` locally, open a pull request, and merge once CI is green. Us
   credential is missing.
 
 ### Security
-See [SECURITY.md](SECURITY.md). Every build is checked by `scripts/build-release.sh`: the only
+See [SECURITY.md](SECURITY.md). `scripts/scan-secrets.py` (run in CI on the full history) fails the build
+if any commit contains a credential-shaped string or a key/certificate file; GitHub secret scanning and push
+protection are enabled as a second layer. Every build is checked by `scripts/build-release.sh`: the only
 entitlement is the App Sandbox (no debugger-attach or network entitlements), no networking code is
 linked, and no debug or test hooks are in the Release binary. `scripts/verify-reproducible.sh`
 (also run in CI) builds twice in different directories and requires byte-identical output.
