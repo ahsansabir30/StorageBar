@@ -56,7 +56,16 @@ final class AppModel {
         clickMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
         ) { [weak self] _ in
+            // Clicks in the menu bar are left to the system: a click on our own status item is
+            // reported here too, and closing on it would shut the popup the instant it opens.
+            guard !Self.isInMenuBar(NSEvent.mouseLocation) else { return }
             Task { @MainActor in self?.dismissPopup() }
+        }
+    }
+
+    nonisolated private static func isInMenuBar(_ point: NSPoint) -> Bool {
+        NSScreen.screens.contains { screen in
+            screen.frame.contains(point) && point.y >= screen.visibleFrame.maxY
         }
     }
 
