@@ -45,6 +45,7 @@ jobs:
           XCODE=$(ls -d /Applications/Xcode*.app | grep -vi beta | sort -V | tail -1)
           sudo xcode-select -s "$XCODE/Contents/Developer"
           xcodebuild -version
+          echo "XCODE_VERSION=$(xcodebuild -version | head -1)" >> "$GITHUB_ENV"
 
       - name: Unit tests
         run: |
@@ -96,8 +97,8 @@ jobs:
             echo "gh attestation verify StorageBar-$VERSION-unsigned.dmg -R $REPO"
             echo '```'
             echo "The attestation proves this file was built by this repository's workflow from commit"
-            echo "\`$COMMIT\`. The build is reproducible: \`scripts/verify-reproducible.sh\` shows two"
-            echo "independent builds are byte-identical."
+            echo "\`$COMMIT\`, using $XCODE_VERSION. The build is reproducible for that Xcode version:"
+            echo "\`scripts/verify-reproducible.sh\` shows two independent builds are byte-identical."
             echo
             echo "Requires macOS 15 or later on Apple silicon. StorageBar has no network access and reads only"
             echo "the capacity of your startup disk. See SECURITY.md."

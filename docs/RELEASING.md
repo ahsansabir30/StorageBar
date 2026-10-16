@@ -72,6 +72,9 @@ gh secret set NOTARY_ISSUER_ID --env release
 
 ## Reproducing the build
 
+Bit-for-bit reproduction needs the **same Xcode version** as the build you are checking (the pre-release
+notes name it; the first release used Xcode 26.6 / SDK 26.5). Different toolchains emit different code.
+
 `scripts/verify-reproducible.sh` builds twice in different directories and requires identical bundles.
 To check a published app against the source, check out the release tag, run
 `scripts/build-release.sh` without credentials, and compare the `Contents/MacOS/StorageBar` hash of the

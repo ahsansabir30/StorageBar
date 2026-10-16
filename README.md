@@ -36,7 +36,8 @@ shasum -a 256 -c StorageBar-x.y.z-unsigned.dmg.sha256
 gh attestation verify StorageBar-x.y.z-unsigned.dmg -R ahsansabir30/StorageBar
 ```
 The attestation proves the file was built by this repository's workflow from a specific commit. The build is
-reproducible, so you can also rebuild it and compare.
+reproducible *for a given Xcode version*: rebuilding with the same Xcode (named in the release notes) gives
+byte-identical output. A different Xcode produces different, but equivalent, code.
 
 ### Put it next to the battery
 macOS controls menu bar order. Hold **⌘ (Command)** and drag the StorageBar item to where you want it,
