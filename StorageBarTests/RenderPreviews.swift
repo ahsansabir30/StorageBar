@@ -59,16 +59,6 @@ struct RenderPreviews {
             }
             let m = await model(freePercent: 55)
             render(PreferencesView(model: m), name: "preferences", dark: dark)
-            render(
-                HStack(spacing: 14) {
-                    MenuBarLabel(model: m)
-                    Image(systemName: "battery.75percent")
-                    Text("Fri 16:02")
-                }
-                .padding(.horizontal, 10).frame(height: 24)
-                .foregroundStyle(dark ? Color.white : Color.black),
-                name: "menubar", dark: dark
-            )
         }
     }
 }

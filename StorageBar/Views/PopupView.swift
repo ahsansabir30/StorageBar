@@ -3,7 +3,8 @@ import SwiftUI
 
 struct PopupView: View {
     let model: AppModel
-    @Environment(\.openWindow) private var openWindow
+    var openPreferences: () -> Void = {}
+    var dismiss: () -> Void = {}
 
     private static let storageSettingsURL = URL(string: "x-apple.systempreferences:com.apple.settings.Storage")!
 
@@ -50,11 +51,11 @@ struct PopupView: View {
                 Task { await model.monitor.refresh() }
             }
             MenuRow("Open Storage Settings", systemImage: "gearshape", id: "storageSettingsButton") {
+                dismiss()
                 NSWorkspace.shared.open(Self.storageSettingsURL)
             }
             MenuRow("Preferences…", systemImage: "slider.horizontal.3", id: "preferencesButton", key: ",") {
-                openWindow(id: PreferencesView.windowID)
-                NSApp.activate()
+                openPreferences()
             }
             MenuRow("Quit StorageBar", systemImage: "power", id: "quitButton", key: "q") {
                 NSApp.terminate(nil)

@@ -23,25 +23,41 @@ final class StorageBarUITests: XCTestCase {
         app.descendants(matching: .any)[id]
     }
 
-    /// Clicks the status item until the popup appears. The first click can land while the app is
-    /// still activating after launch, so a few attempts are made before failing.
+    /// With "automatically hide the menu bar" on, the item sits above the screen edge until the
+    /// pointer touches the top. Move there, wait for the bar to drop, then click like a user.
+    private func revealMenuBarIfHidden() {
+        guard !statusItem.isHittable else { return }
+        let aboveScreen = statusItem.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        aboveScreen.withOffset(CGVector(dx: 0, dy: -statusItem.frame.midY + 1)).hover()
+        let hittable = NSPredicate(format: "isHittable == true")
+        _ = XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: hittable, object: statusItem)], timeout: 4)
+    }
+
     private func openPopup() throws {
         XCTAssertTrue(statusItem.waitForExistence(timeout: 10), "StorageBar status item not found")
-        try XCTSkipUnless(statusItem.isHittable, "Menu bar is auto-hidden; status item cannot be clicked")
-        for _ in 0..<4 {
+        revealMenuBarIfHidden()
+        try XCTSkipUnless(statusItem.isHittable, "Menu bar is auto-hidden and could not be revealed")
+        for _ in 0..<3 {
             statusItem.click()
             if element("refreshButton").waitForExistence(timeout: 3) { return }
         }
         XCTFail("Popup did not open after repeated clicks")
     }
 
+    func testThereIsExactlyOneStatusItem() throws {
+        XCTAssertTrue(statusItem.waitForExistence(timeout: 10))
+        XCTAssertEqual(app.statusItems.matching(identifier: "menuBarLabel").count, 1)
+    }
+
     func testStatusItemExistsAndShowsStorageValue() throws {
         XCTAssertTrue(statusItem.waitForExistence(timeout: 10), "StorageBar status item not found")
+        // Visible text is the button title ("277 GB"); VoiceOver reads the label ("277 GB available").
         let text = statusItem.title
         XCTAssertNotNil(
-            text.range(of: #"^\d+(\.\d)? (MB|GB|TB) available$"#, options: .regularExpression),
-            "Unexpected status item accessibility label: '\(text)'"
+            text.range(of: #"^\d+(\.\d)? (MB|GB|TB)$"#, options: .regularExpression),
+            "Unexpected status item text: '\(text)'"
         )
+        XCTAssertTrue(statusItem.label.hasSuffix("available"), "Unexpected spoken label: '\(statusItem.label)'")
     }
 
     func testStatusItemOpensPopupWithAllActions() throws {

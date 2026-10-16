@@ -72,9 +72,21 @@ actor AsyncGate {
     }
 }
 
+/// Throwaway defaults suite per test. Stale plists from earlier runs are removed once per process
+/// so repeated test runs do not accumulate files in the app container.
 func makeDefaults() -> UserDefaults {
-    UserDefaults(suiteName: "StorageBarTests-\(UUID().uuidString)")!
+    _ = removeStaleTestDefaults
+    return UserDefaults(suiteName: "StorageBarTests-\(UUID().uuidString)")!
 }
+
+private let removeStaleTestDefaults: Void = {
+    let directory = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("Preferences")
+    let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+    for file in files where file.lastPathComponent.hasPrefix("StorageBarTests-") {
+        try? FileManager.default.removeItem(at: file)
+    }
+}()
 
 // MARK: - Preferences
 

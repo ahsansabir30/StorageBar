@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct PreferencesView: View {
-    static let windowID = "preferences"
     private static let warningChoices = [5, 10, 15, 20, 30]
 
     @Bindable private var preferences: Preferences
@@ -56,6 +55,10 @@ struct PreferencesView: View {
                 } else {
                     note("You’ll also be alerted below \(preferences.thresholds.criticalPercent)%.")
                 }
+            }
+
+            Section {
+                Button("About StorageBar…") { AppInfo.showAbout() }
             }
         }
         .formStyle(.grouped)

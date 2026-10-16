@@ -65,4 +65,13 @@ enum DisplayFormat: String, CaseIterable, Identifiable, Sendable {
         case .usedPercent: "\(snapshot.usedPercent)%"
         }
     }
+
+    /// What VoiceOver reads for the menu bar item.
+    func spokenText(for snapshot: StorageSnapshot) -> String {
+        switch self {
+        case .freeGB, .iconAndGB: "\(ByteFormatter.detailed(snapshot.availableBytes)) available"
+        case .freePercent: "\(snapshot.availablePercent) percent available"
+        case .usedPercent: "\(snapshot.usedPercent) percent used"
+        }
+    }
 }

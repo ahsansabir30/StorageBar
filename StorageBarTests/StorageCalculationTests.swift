@@ -116,6 +116,12 @@ struct FormattingTests {
         #expect(DisplayFormat.usedPercent.text(for: sample) == "75%")
     }
 
+    @Test func spokenTextDescribesEachFormat() {
+        #expect(DisplayFormat.freeGB.spokenText(for: sample).hasSuffix("available"))
+        #expect(DisplayFormat.freePercent.spokenText(for: sample) == "25 percent available")
+        #expect(DisplayFormat.usedPercent.spokenText(for: sample) == "75 percent used")
+    }
+
     @Test func onlyIconFormatForcesIcon() {
         #expect(DisplayFormat.allCases.filter(\.forcesIcon) == [.iconAndGB])
     }
