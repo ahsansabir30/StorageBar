@@ -16,8 +16,9 @@ Releases are only published when they are Developer ID signed and notarised (see
 Check the SHA-256 file, `spctl --assess` and `codesign -dv` as described there. The build is
 reproducible: `scripts/verify-reproducible.sh` shows two builds are byte-identical.
 
-**Current status:** no signed or notarised release has been published yet. Builds you make
-yourself from source are ad-hoc signed and meant for your own Mac.
+**Current status:** published downloads are **unsigned pre-releases** (no Apple Developer ID, not
+notarised). Verify them with the SHA-256 file and `gh attestation verify <dmg> -R ahsansabir30/StorageBar`, which proves the file was built by this repository's workflow.
+macOS asks for a one-time *Open Anyway* approval; never disable Gatekeeper.
 
 ## Supported versions
 Only the latest release receives fixes.

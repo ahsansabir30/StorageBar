@@ -17,14 +17,26 @@ A tiny native macOS menu bar app that shows how much free space your startup dis
 macOS 15 (Sequoia) or later on an Apple silicon Mac. Developed and tested on macOS 26 (Tahoe).
 
 ### Install
-1. Download **StorageBar.dmg** from the [Releases page](https://github.com/ahsansabir30/StorageBar/releases).
-2. Open it and drag **StorageBar** into **Applications**.
-3. Open StorageBar from Applications. Free space appears in the menu bar straight away.
+StorageBar is **not signed with an Apple Developer ID and not notarised**, so macOS warns the first time
+you open it. That is a one-time approval, and the download can be verified (see below). Only install it
+if you trust this repository.
 
-> **Status of public downloads:** the project is ready to publish signed, notarised builds, but no
-> Apple Developer ID certificate has been configured yet, so **no notarised release exists yet**.
-> Until one does, build from source (see below). An unsigned build will trigger Gatekeeper warnings;
-> do not work around them by disabling Gatekeeper.
+1. Download **StorageBar-x.y.z-unsigned.dmg** from the [Releases page](https://github.com/ahsansabir30/StorageBar/releases)
+   (marked *Pre-release*).
+2. Open it and drag **StorageBar** into **Applications**.
+3. Open StorageBar. macOS says it can't verify the app: click **Done**.
+4. Open **System Settings › Privacy & Security**, scroll to **Security**, and click **Open Anyway** next to
+   the StorageBar message. Confirm with your password or Touch ID, then open StorageBar again.
+
+Never disable Gatekeeper. If you'd rather not approve an unsigned app, build it yourself (Developers, below).
+
+**Verify the download** (optional, recommended):
+```bash
+shasum -a 256 -c StorageBar-x.y.z-unsigned.dmg.sha256
+gh attestation verify StorageBar-x.y.z-unsigned.dmg -R ahsansabir30/StorageBar
+```
+The attestation proves the file was built by this repository's workflow from a specific commit. The build is
+reproducible, so you can also rebuild it and compare.
 
 ### Put it next to the battery
 macOS controls menu bar order. Hold **⌘ (Command)** and drag the StorageBar item to where you want it,
@@ -105,8 +117,10 @@ tests and `analyze` locally, open a pull request, and merge once CI is green. Us
 ### CI/CD
 - `.github/workflows/ci.yml`: on pull requests and pushes to `main`: Release build, unit tests, static
   analysis, and a packaging dry run that uploads the *unsigned* DMG as a short-lived artefact.
-- `.github/workflows/release.yml`: manual. Signs with Developer ID, notarises, staples, verifies,
-  checksums, then creates the GitHub Release. It refuses to run, and publishes nothing, if any
+- `.github/workflows/prerelease.yml`: manual. Tests, checks reproducibility, builds, attests build provenance
+  and publishes an **unsigned pre-release** (tag `unsigned-vX.Y.Z`). No secrets involved.
+- `.github/workflows/release.yml`: manual, for the day an Apple Developer ID exists. Signs, notarises,
+  staples, verifies, checksums and publishes. It refuses to run, and publishes nothing, if any
   credential is missing.
 
 ### Security

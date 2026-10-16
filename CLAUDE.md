@@ -42,7 +42,7 @@ Config/                entitlements (sandbox only)
 docs/ARCHITECTURE.md   design and metric definitions
 docs/RELEASING.md      signing, notarisation, release process
 scripts/               build-release.sh (DMG), make-icon.swift
-.github/workflows/     ci.yml, release.yml
+.github/workflows/     ci.yml, prerelease.yml (unsigned), release.yml (signed; needs Apple credentials)
 .claude/rules/         swift.md, architecture.md, testing.md, design.md (UI decisions)
 ```
 
