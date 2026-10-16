@@ -4,16 +4,19 @@
 
 ```
 StorageBarApp (@main)
- ├─ MenuBarExtra(.window) ── MenuBarLabel (status item text/icon)
- │                        └─ PopupView   (details, actions)
- └─ Window "preferences" (launch suppressed) ── PreferencesView
-        all views read ──▶ AppModel (composition root)
+ └─ AppDelegate ── StatusItemController ── NSStatusItem (autosaveName "StorageBar"; title/icon from AppModel)
+                      ├─ NSPopover(.transient) ── PopupView
+                      ├─ right-click NSMenu: About / Preferences / Quit
+                      └─ NSWindow ── PreferencesView
+        views read ──▶ AppModel (composition root)
                              ├─ Preferences        UserDefaults-backed settings
                              ├─ StorageMonitor     polling + state (@MainActor @Observable)
                              │    └─ StorageProviding ◀── VolumeStorageProvider (URLResourceValues)
                              ├─ LowStorageAlerter  AlertGate + Notifying ◀── SystemNotifier (UNUserNotificationCenter)
                              └─ LoginItemControlling ◀── SystemLoginItem (SMAppService.mainApp)
 ```
+
+**Why `NSStatusItem` instead of `MenuBarExtra`:** `MenuBarExtra` cannot be given a name, so macOS keys the item's position/visibility under the generic `Item-0` shared with other apps; it offers no control over popup dismissal (a transient `NSPopover` closes on outside clicks natively); and it has no right-click menu. macOS still owns ordering: users ⌘-drag the item, and AppKit persists the position under the autosave name.
 
 `Core/` holds all logic and compiles without UI. Views are thin. OS services sit behind three
 protocols (`StorageProviding`, `Notifying`, `LoginItemControlling`) so tests use fakes.
@@ -59,7 +62,7 @@ popup shows a warning. With no snapshot yet the label shows `-- GB`. Overlapping
 
 ## Platform and security
 
-macOS 15+, arm64, `LSUIElement` (no Dock icon), App Sandbox with no extra entitlements,
+macOS 15+, arm64, `LSUIElement` (no Dock icon), single instance (a second launch only reveals the popup), App Sandbox with no extra entitlements,
 hardened runtime, ad-hoc signed. No network, telemetry, private APIs, or file scanning.
 `INFOPLIST_KEY_*` build settings generate the Info.plist; there is no hand-written plist.
 
