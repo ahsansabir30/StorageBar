@@ -73,7 +73,13 @@ gh secret set NOTARY_ISSUER_ID --env release
 ## Reproducing the build
 
 Bit-for-bit reproduction needs the **same Xcode version** as the build you are checking (the pre-release
-notes name it; the first release used Xcode 26.6 / SDK 26.5). Different toolchains emit different code.
+notes name it). Different toolchains emit different code.
+
+**CI is pinned** to runner image `macos-26` and **Xcode 26.6** (`PINNED_XCODE` at the top of each workflow).
+The job fails, rather than silently using another Xcode, if that exact version is missing from the image.
+To bump: change `PINNED_XCODE` (and the runner label if needed) in `ci.yml`, `prerelease.yml` and
+`release.yml` in one PR, and let the reproducibility step pass on the new toolchain. Dependabot does not
+manage this pin.
 
 `scripts/verify-reproducible.sh` builds twice in different directories and requires identical bundles.
 To check a published app against the source, check out the release tag, run

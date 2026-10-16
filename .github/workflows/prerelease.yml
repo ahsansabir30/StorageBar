@@ -11,6 +11,10 @@ on:
         description: "Version to publish; must equal MARKETING_VERSION in the project (e.g. 1.0.0)"
         required: true
 
+# Toolchain pin: bump deliberately. Reproducibility holds per Xcode version (see docs/RELEASING.md).
+env:
+  PINNED_XCODE: "26.6"
+
 permissions:
   contents: read
 
@@ -21,7 +25,7 @@ concurrency:
 jobs:
   publish:
     if: github.ref == 'refs/heads/main'
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 45
     permissions:
       contents: write        # create the release
@@ -40,10 +44,16 @@ jobs:
             echo "::error::Tag $TAG already exists"; exit 1
           fi
 
-      - name: Select the newest installed Xcode
+      - name: Select the pinned Xcode
         run: |
-          XCODE=$(ls -d /Applications/Xcode*.app | grep -vi beta | sort -V | tail -1)
+          XCODE="/Applications/Xcode_${PINNED_XCODE}.app"
+          if [ ! -d "$XCODE" ]; then
+            echo "::error::$XCODE is not on this runner image. Bump PINNED_XCODE (and the runner label) deliberately."
+            ls -d /Applications/Xcode*.app || true
+            exit 1
+          fi
           sudo xcode-select -s "$XCODE/Contents/Developer"
+          [ "$(xcodebuild -version | head -1)" = "Xcode ${PINNED_XCODE}" ] || { echo "::error::Wrong Xcode selected"; exit 1; }
           xcodebuild -version
           echo "XCODE_VERSION=$(xcodebuild -version | head -1)" >> "$GITHUB_ENV"
 
