@@ -11,6 +11,11 @@ Do not open a public issue for security problems. Include the version, macOS ver
 - App Sandbox is the only entitlement. No Full Disk Access, no helper tools, no auto-updater.
 - Optional notifications and launch at login are off until you enable them.
 
+## Secrets in this repository
+No credentials are stored in the repository or its history, and CI enforces that with
+`scripts/scan-secrets.py` plus GitHub secret scanning and push protection. Signing material, if it
+ever exists, lives only in the protected `release` environment's secrets.
+
 ## Verifying a download
 Releases are only published when they are Developer ID signed and notarised (see `docs/RELEASING.md`).
 Check the SHA-256 file, `spctl --assess` and `codesign -dv` as described there. The build is
