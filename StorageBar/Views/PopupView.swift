@@ -17,8 +17,6 @@ struct PopupView: View {
         .padding(.top, 14)
         .padding(.bottom, 8)
         .frame(width: 300)
-        .background(PopupWindowReader { model.popupWindow = $0 })
-        .onExitCommand { model.dismissPopup() }
         .task { await model.monitor.refresh() }
     }
 
@@ -162,23 +160,6 @@ private struct StatusNote: View {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(color)
         }
         .font(.caption)
-    }
-}
-
-/// Hands the hosting window to the model so it can be dismissed on outside clicks.
-private struct PopupWindowReader: NSViewRepresentable {
-    let onWindow: (NSWindow) -> Void
-
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async { [weak view] in
-            if let window = view?.window { onWindow(window) }
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        if let window = nsView.window { onWindow(window) }
     }
 }
 

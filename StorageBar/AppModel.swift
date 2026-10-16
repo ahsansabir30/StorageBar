@@ -11,9 +11,6 @@ final class AppModel {
     @ObservationIgnored private let alerter: LowStorageAlerter
     @ObservationIgnored private let loginItem: any LoginItemControlling
     @ObservationIgnored private var wakeTask: Task<Void, Never>?
-    @ObservationIgnored private var clickMonitor: Any?
-    /// The MenuBarExtra popup window, captured by the popup view.
-    @ObservationIgnored weak var popupWindow: NSWindow?
 
     private(set) var launchAtLogin: Bool
     private(set) var loginItemNeedsApproval: Bool
@@ -39,7 +36,6 @@ final class AppModel {
     func start() {
         monitor.onSnapshot = { [alerter] snapshot in await alerter.handle(snapshot) }
         restartPolling()
-        installOutsideClickMonitor()
         wakeTask?.cancel()
         wakeTask = Task { [weak self] in
             let wake = NSWorkspace.shared.notificationCenter.notifications(named: NSWorkspace.didWakeNotification)
@@ -49,33 +45,7 @@ final class AppModel {
         }
     }
 
-    /// A click in any other app, the desktop or another status item never reaches this app, so a
-    /// global monitor is the reliable signal to close the popup (it may never become key window).
-    private func installOutsideClickMonitor() {
-        if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
-        clickMonitor = NSEvent.addGlobalMonitorForEvents(
-            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
-        ) { [weak self] _ in
-            // Clicks in the menu bar are left to the system: a click on our own status item is
-            // reported here too, and closing on it would shut the popup the instant it opens.
-            guard !Self.isInMenuBar(NSEvent.mouseLocation) else { return }
-            Task { @MainActor in self?.dismissPopup() }
-        }
-    }
-
-    nonisolated private static func isInMenuBar(_ point: NSPoint) -> Bool {
-        NSScreen.screens.contains { screen in
-            screen.frame.contains(point) && point.y >= screen.visibleFrame.maxY
-        }
-    }
-
-    func dismissPopup() {
-        if let window = popupWindow, window.isVisible { window.orderOut(nil) }
-    }
-
     func stop() {
-        if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
-        clickMonitor = nil
         monitor.stop()
         wakeTask?.cancel()
         wakeTask = nil
