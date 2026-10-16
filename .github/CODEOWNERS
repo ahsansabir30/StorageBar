@@ -1,0 +1,9 @@
+# Security-sensitive paths. Changes here deserve a careful review (they control what ships, how it
+# is signed, what the app may do, and the instructions AI coding assistants follow in this repo).
+/.github/                         @ahsansabir30
+/scripts/                         @ahsansabir30
+/Config/                          @ahsansabir30
+/StorageBar.xcodeproj/            @ahsansabir30
+/CLAUDE.md                        @ahsansabir30
+/.claude/                         @ahsansabir30
+/SECURITY.md                      @ahsansabir30

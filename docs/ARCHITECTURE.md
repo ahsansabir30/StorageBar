@@ -82,6 +82,16 @@ See `.claude/rules/design.md` for the type scale, spacing and component rules. V
 uses offscreen renders (`RenderPreviews`), not screenshots of the live menu bar; screen capture is
 blocked for tooling on this setup.
 
+## Security properties (enforced in the build)
+- Entitlements: App Sandbox only. `CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO` in Release keeps Xcode
+  from adding `get-task-allow`; `build-release.sh` fails if any other entitlement appears.
+- No networking symbols linked; no `STORAGEBAR_FAKE_FREE_PERCENT` or `XCTestConfigurationFilePath`
+  strings in Release (both hooks are `#if DEBUG`).
+- Reproducible Release link (`-Wl,-reproducible -Wl,-S`): two builds from different directories give
+  byte-identical bundles (`scripts/verify-reproducible.sh`, run in CI).
+- Debug builds use bundle id `com.ahsan.StorageBar.debug`, so tests and previews never touch the
+  real app's sandbox container or settings.
+
 ## Known limitations
 
 - Not notarised / Developer ID signed; runs on the building Mac. Login-item registration may

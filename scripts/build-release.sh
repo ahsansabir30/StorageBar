@@ -59,6 +59,20 @@ PLIST="$APP/Contents/Info.plist"
 [[ "$(lipo -archs "$APP/Contents/MacOS/StorageBar")" == arm64 ]] || die "binary is not arm64"
 [[ -f "$APP/Contents/Resources/Assets.car" ]] || die "app icon assets missing"
 codesign --verify --deep --strict "$APP" || die "app signature does not verify"
+
+# Security invariants, checked on every build (local, CI and release):
+# 1. The only entitlement is the App Sandbox. In particular no get-task-allow (debugger attach,
+#    rejected by notarisation) and no network, file-access or other exceptions.
+KEYS=$(codesign -d --entitlements - "$APP" 2>&1 | awk '/\[Key\]/{print $2}' | sort | tr '\n' ' ')
+[[ "$KEYS" == "com.apple.security.app-sandbox " ]] || die "unexpected entitlements: ${KEYS:-none}"
+# 2. No networking code is linked and no debug/test hooks are compiled in.
+BIN="$APP/Contents/MacOS/StorageBar"
+if nm -u "$BIN" 2>/dev/null | grep -qiE "NSURLSession|CFNetwork|_getaddrinfo|_socket$|nw_connection"; then
+  die "networking symbols found in the binary"
+fi
+if strings -a "$BIN" | grep -qE "STORAGEBAR_FAKE_FREE_PERCENT|XCTestConfigurationFilePath"; then
+  die "debug or test hooks found in the Release binary"
+fi
 if $SIGNED; then
   DETAILS=$(codesign -dvv "$APP" 2>&1)
   grep -q "flags=.*runtime" <<<"$DETAILS" || die "hardened runtime not enabled"

@@ -16,8 +16,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var model: AppModel?
     private var controller: StatusItemController?
 
+    /// Only Debug builds are ever hosted by the unit-test runner; Release builds have no test hooks.
     private var isRunningUnitTests: Bool {
+        #if DEBUG
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        #else
+        false
+        #endif
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

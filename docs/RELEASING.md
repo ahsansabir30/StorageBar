@@ -55,6 +55,14 @@ gh secret set NOTARY_ISSUER_ID --env release
    SHA-256 file, then creates release `v<version>` with `StorageBar.dmg` and its checksum.
    Any failure stops before anything is published. The keychain and key files are deleted afterwards.
 
+## Reproducing the build
+
+`scripts/verify-reproducible.sh` builds twice in different directories and requires identical bundles.
+To check a published app against the source, check out the release tag, run
+`scripts/build-release.sh` without credentials, and compare the `Contents/MacOS/StorageBar` hash of the
+unsigned build with the app inside the DMG (ignore the code signature itself, which differs by
+design: `codesign --remove-signature` on a copy of each before hashing).
+
 ## Verifying a release by hand
 
 ```bash
