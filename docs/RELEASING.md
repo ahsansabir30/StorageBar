@@ -1,5 +1,13 @@
 # Releasing StorageBar
 
+## Two release paths
+
+- **Unsigned pre-release** (`prerelease.yml`, available now, free): publishes `StorageBar-X.Y.Z-unsigned.dmg`
+  with a SHA-256 file and a GitHub build-provenance attestation under tag `unsigned-vX.Y.Z`. Users approve
+  it once via System Settings › Privacy & Security › Open Anyway. Run it from Actions › *Unsigned
+  pre-release*, entering the version.
+- **Signed and notarised release** (`release.yml`): needs the Apple Developer Program (see below).
+
 ## Current status
 
 | Capability | State |
