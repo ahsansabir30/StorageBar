@@ -35,6 +35,7 @@ Items can also be shown or hidden in System Settings › Menu Bar.
 ### Use it
 - **Click** the item for disk name, available space, used space and percentage, a capacity bar and
   the time of the last update. The popup has Refresh, Storage Settings, Preferences and Quit; About is in Preferences.
+- **Low storage:** when free space falls to the critical level (5 % by default), the menu bar icon and value turn red, and the icon shows even if you hid it.
 - **Preferences** (from the popup): launch at login, refresh interval (default 1 minute),
   what the menu bar shows (free GB, free %, used %), the disk icon, and optional low-storage alerts
   (warning below 10 %, critical below 5 % by default; macOS asks for notification permission only when

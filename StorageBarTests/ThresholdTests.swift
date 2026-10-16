@@ -74,3 +74,35 @@ struct AlertGateTests {
         #expect(gate.levelToNotify(availableFraction: 0.5, thresholds: t) == nil)
     }
 }
+
+struct MenuBarStyleTests {
+    private let thresholds = StorageThresholds()   // warning 10 %, critical 5 %
+
+    @Test func isRedOnlyAtTheCriticalLevel() {
+        func style(_ percent: Double) -> MenuBarStyle {
+            MenuBarStyle(snapshot: makeSnapshot(freePercent: percent), thresholds: thresholds, iconPreferred: true)
+        }
+        #expect(style(50).isCritical == false)
+        #expect(style(8).isCritical == false)    // warning is not critical
+        #expect(style(5).isCritical == false)    // boundary: 5 % is not below 5 %
+        #expect(style(4.9).isCritical == true)
+        #expect(style(0.5).isCritical == true)
+    }
+
+    @Test func criticalForcesTheIconEvenWhenHidden() {
+        let critical = MenuBarStyle(snapshot: makeSnapshot(freePercent: 2), thresholds: thresholds, iconPreferred: false)
+        #expect(critical.showsIcon)
+        let normal = MenuBarStyle(snapshot: makeSnapshot(freePercent: 50), thresholds: thresholds, iconPreferred: false)
+        #expect(!normal.showsIcon)
+    }
+
+    @Test func followsTheConfiguredThreshold() {
+        let strict = StorageThresholds(warningPercent: 30)   // critical at 15 %
+        #expect(MenuBarStyle(snapshot: makeSnapshot(freePercent: 12), thresholds: strict, iconPreferred: true).isCritical)
+        #expect(!MenuBarStyle(snapshot: makeSnapshot(freePercent: 12), thresholds: thresholds, iconPreferred: true).isCritical)
+    }
+
+    @Test func noReadingIsNeverCritical() {
+        #expect(!MenuBarStyle(snapshot: nil, thresholds: thresholds, iconPreferred: true).isCritical)
+    }
+}
