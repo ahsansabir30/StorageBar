@@ -3,7 +3,7 @@
 A small native macOS menu bar app that shows the free space on your startup disk, e.g. `274 GB`.
 Click it for details. Built with Swift 6 and SwiftUI. No dependencies, no network, no telemetry.
 
-- Menu bar shows free GB, free %, used %, or an icon plus free GB (Preferences → Display).
+- Menu bar shows a disk icon and free space (e.g. `[disk] 128 GB`); free GB, free %, used % or icon + GB are selectable, and the icon can be hidden.
 - Popup: disk name, total, used, available, % used, usage bar, last refresh, Refresh,
   Open Storage Settings, Preferences, Quit.
 - Refreshes every 60 s by default (30 s / 1 / 5 / 15 min available), on popup open, and after wake.
@@ -57,7 +57,7 @@ xcodebuild -project StorageBar.xcodeproj -scheme StorageBar -derivedDataPath $DD
 xcodebuild -project StorageBar.xcodeproj -scheme StorageBar -derivedDataPath $DD analyze
 ```
 
-- Unit tests (Swift Testing, 47): metric calculations, byte and percent formatting, display
+- Unit tests (Swift Testing, 49): metric calculations, byte and percent formatting, display
   formats, thresholds and alert de-duplication, preferences persistence, monitor refresh/error
   behaviour, notification and login-item handling, app wiring.
 - UI tests (XCUITest, 3): status item shows a storage value; popup shows all actions; Preferences

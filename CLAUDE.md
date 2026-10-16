@@ -37,7 +37,7 @@ StorageBarTests/       Swift Testing unit tests (hosted by the app)
 StorageBarUITests/     XCUITest against the launched app
 Config/                entitlements (sandbox only)
 docs/ARCHITECTURE.md   design and metric definitions
-.claude/rules/         swift.md, architecture.md, testing.md
+.claude/rules/         swift.md, architecture.md, testing.md, design.md (UI decisions)
 ```
 
 Settings live in `project.pbxproj`; `LSUIElement` is set via `INFOPLIST_KEY_LSUIElement` (no Info.plist
@@ -52,6 +52,7 @@ file). Edit the pbxproj by hand only for build settings/targets; never list sour
 - Sandbox stays on with no extra entitlements. Adding any entitlement needs a stated reason.
 - Notifications and login item are opt-in and permission-based; never prompt at launch.
 - Tests first for logic changes (Red, Green, Refactor). All unit tests must pass before commit.
+- UI changes follow `.claude/rules/design.md`: native controls, one focal figure, no custom materials or animation.
 - Detailed standards: `.claude/rules/*.md`. Do not duplicate them here or restate ECC's rules.
 
 ## Git

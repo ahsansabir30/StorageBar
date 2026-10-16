@@ -8,116 +8,217 @@ struct PopupView: View {
     private static let storageSettingsURL = URL(string: "x-apple.systempreferences:com.apple.settings.Storage")!
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let snapshot = model.monitor.snapshot {
-                details(snapshot)
-            } else {
-                Text(model.monitor.lastError?.localizedDescription ?? "Reading storage…")
-                    .foregroundStyle(.secondary)
-            }
-            footer
+        VStack(alignment: .leading, spacing: 14) {
+            content
             Divider()
             actions
         }
-        .padding(16)
-        .frame(width: 280)
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 8)
+        .frame(width: 300)
         .task { await model.monitor.refresh() }
     }
 
-    private func details(_ snapshot: StorageSnapshot) -> some View {
-        let level = model.preferences.thresholds.level(forAvailableFraction: snapshot.availableFraction)
-        return VStack(alignment: .leading, spacing: 12) {
-            Label(snapshot.volumeName, systemImage: "internaldrive")
-                .font(.headline)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("\(ByteFormatter.detailed(snapshot.availableBytes)) available")
-                    .font(.title3.weight(.semibold))
-                UsageBar(fraction: snapshot.usedFraction, level: level)
-                Text("\(snapshot.usedPercent)% used")
-                    .font(.caption)
+    @ViewBuilder
+    private var content: some View {
+        if let snapshot = model.monitor.snapshot {
+            StorageSummary(
+                snapshot: snapshot,
+                level: model.preferences.thresholds.level(forAvailableFraction: snapshot.availableFraction),
+                refreshFailed: model.monitor.lastError != nil
+            )
+        } else if model.monitor.lastError != nil {
+            VStack(alignment: .leading, spacing: 4) {
+                Label("Can’t read disk capacity", systemImage: "exclamationmark.triangle")
+                    .font(.headline)
+                Text("StorageBar will try again automatically.")
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-
-            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
-                row("Total", ByteFormatter.detailed(snapshot.totalBytes))
-                row("Used", ByteFormatter.detailed(snapshot.usedBytes))
-                row("Available", ByteFormatter.detailed(snapshot.availableBytes))
-                if snapshot.purgeableBytes > 0 {
-                    row("Purgeable", ByteFormatter.detailed(snapshot.purgeableBytes))
-                }
+        } else {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Reading storage…").foregroundStyle(.secondary)
             }
-            .font(.callout)
-        }
-    }
-
-    private func row(_ title: String, _ value: String) -> some View {
-        GridRow {
-            Text(title).foregroundStyle(.secondary)
-            Text(value).gridColumnAlignment(.trailing).monospacedDigit()
-        }
-    }
-
-    @ViewBuilder
-    private var footer: some View {
-        if let error = model.monitor.lastError {
-            Label(error.localizedDescription, systemImage: "exclamationmark.triangle")
-                .font(.caption)
-                .foregroundStyle(.orange)
-        }
-        if let snapshot = model.monitor.snapshot {
-            Text("Updated \(snapshot.date.formatted(date: .omitted, time: .shortened))")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 
     private var actions: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            ActionButton("Refresh", systemImage: "arrow.clockwise", id: "refreshButton") {
+        VStack(alignment: .leading, spacing: 0) {
+            MenuRow("Refresh", systemImage: "arrow.clockwise", id: "refreshButton", key: "r") {
                 Task { await model.monitor.refresh() }
             }
-            .disabled(model.monitor.isRefreshing)
-            ActionButton("Open Storage Settings", systemImage: "gearshape", id: "storageSettingsButton") {
+            MenuRow("Open Storage Settings", systemImage: "gearshape", id: "storageSettingsButton") {
                 NSWorkspace.shared.open(Self.storageSettingsURL)
             }
-            ActionButton("Preferences…", systemImage: "slider.horizontal.3", id: "preferencesButton") {
+            MenuRow("Preferences…", systemImage: "slider.horizontal.3", id: "preferencesButton", key: ",") {
                 openWindow(id: PreferencesView.windowID)
                 NSApp.activate()
             }
-            ActionButton("Quit StorageBar", systemImage: "power", id: "quitButton") {
+            MenuRow("Quit StorageBar", systemImage: "power", id: "quitButton", key: "q") {
                 NSApp.terminate(nil)
             }
-            .keyboardShortcut("q")
         }
+        // Let the hover highlight reach the popup's content margins, as in a system menu.
+        .padding(.horizontal, -8)
     }
 }
 
-private struct ActionButton: View {
+/// Disk name, one dominant figure, capacity bar and a single supporting line.
+private struct StorageSummary: View {
+    let snapshot: StorageSnapshot
+    let level: StorageLevel
+    let refreshFailed: Bool
+
+    var body: some View {
+        let available = ByteFormatter.parts(snapshot.availableBytes)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label(snapshot.volumeName, systemImage: "internaldrive")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 8)
+                Text("Updated \(snapshot.date.formatted(date: .omitted, time: .shortened))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(available.value)
+                        .font(.system(size: 34, weight: .semibold))
+                        .monospacedDigit()
+                    Text(available.unit)
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+                Text(snapshot.purgeableBytes > 0
+                    ? "Available · includes \(ByteFormatter.detailed(snapshot.purgeableBytes)) purgeable"
+                    : "Available")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                UsageBar(fraction: snapshot.usedFraction, level: level)
+                HStack {
+                    Text("\(ByteFormatter.detailed(snapshot.usedBytes)) used · \(snapshot.usedPercent)%")
+                    Spacer(minLength: 8)
+                    Text("\(ByteFormatter.detailed(snapshot.totalBytes)) total")
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+            }
+
+            if let notice = levelNotice {
+                StatusNote(text: notice, color: level == .critical ? .red : .orange)
+            }
+            if refreshFailed {
+                StatusNote(text: "Couldn’t refresh. Showing the last reading.", color: .orange)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spokenSummary)
+    }
+
+    private var levelNotice: String? {
+        switch level {
+        case .normal: nil
+        case .warning: "Storage is running low."
+        case .critical: "Storage is almost full."
+        }
+    }
+
+    /// One complete sentence: everything the sighted layout shows, including state.
+    private var spokenSummary: String {
+        var parts = [
+            "\(snapshot.volumeName), \(ByteFormatter.detailed(snapshot.availableBytes)) available",
+            "\(ByteFormatter.detailed(snapshot.usedBytes)) used of \(ByteFormatter.detailed(snapshot.totalBytes)), \(snapshot.usedPercent) percent",
+        ]
+        if snapshot.purgeableBytes > 0 {
+            parts.append("includes \(ByteFormatter.detailed(snapshot.purgeableBytes)) purgeable")
+        }
+        if let levelNotice { parts.append(levelNotice) }
+        if refreshFailed { parts.append("Couldn’t refresh, showing the last reading") }
+        parts.append("Updated \(snapshot.date.formatted(date: .omitted, time: .shortened))")
+        return parts.joined(separator: ". ")
+    }
+}
+
+/// Symbol plus primary-colour text, so state is not conveyed by colour alone and contrast stays high.
+private struct StatusNote: View {
+    let text: String
+    let color: Color
+
+    var body: some View {
+        Label {
+            Text(text)
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(color)
+        }
+        .font(.caption)
+    }
+}
+
+/// A menu-style action row: icon, title, shortcut hint and a subtle hover highlight.
+private struct MenuRow: View {
     let title: String
     let systemImage: String
     let id: String
+    let key: Character?
     let action: () -> Void
 
-    init(_ title: String, systemImage: String, id: String, action: @escaping () -> Void) {
+    @State private var isHovering = false
+    @Environment(\.isFocused) private var isFocused
+
+    init(_ title: String, systemImage: String, id: String, key: Character? = nil, action: @escaping () -> Void) {
         self.title = title
         self.systemImage = systemImage
         self.id = id
+        self.key = key
         self.action = action
     }
 
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .frame(width: 18)
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                Text(title)
+                Spacer(minLength: 12)
+                if let key {
+                    Text("⌘\(String(key).uppercased())")
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.primary.opacity(isHovering || isFocused ? 0.08 : 0))
+            )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.vertical, 3)
+        .onHover { isHovering = $0 }
+        .keyboardShortcut(key.map { KeyboardShortcut(KeyEquivalent($0), modifiers: .command) })
         .accessibilityIdentifier(id)
     }
 }
 
+/// Thin capacity bar. Accent colour normally; orange/red once a low-storage threshold is crossed.
 struct UsageBar: View {
     let fraction: Double
     let level: StorageLevel
@@ -128,13 +229,11 @@ struct UsageBar: View {
                 Capsule().fill(.quaternary)
                 Capsule()
                     .fill(color)
-                    .frame(width: max(proxy.size.width * min(max(fraction, 0), 1), 4))
+                    .frame(width: fraction > 0 ? max(proxy.size.width * min(fraction, 1), 6) : 0)
             }
         }
         .frame(height: 8)
-        .accessibilityElement()
-        .accessibilityLabel("Storage used")
-        .accessibilityValue("\(Int((fraction * 100).rounded())) percent")
+        .accessibilityHidden(true)
     }
 
     private var color: Color {

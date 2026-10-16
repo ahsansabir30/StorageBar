@@ -39,8 +39,8 @@ final class StorageBarUITests: XCTestCase {
         XCTAssertTrue(statusItem.waitForExistence(timeout: 10), "StorageBar status item not found")
         let text = statusItem.title
         XCTAssertNotNil(
-            text.range(of: #"^\d+(\.\d)? (MB|GB|TB)$"#, options: .regularExpression),
-            "Unexpected status item text: '\(text)'"
+            text.range(of: #"^\d+(\.\d)? (MB|GB|TB) available$"#, options: .regularExpression),
+            "Unexpected status item accessibility label: '\(text)'"
         )
     }
 

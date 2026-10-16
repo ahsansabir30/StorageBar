@@ -74,10 +74,17 @@ in six of seven samples (one 0.7 % sample), resident memory 78–86 MB (includes
 SwiftUI/AppKit pages). `ps` is coarse; no Instruments energy trace was taken, so no energy-impact
 figure is claimed.
 
+## UI design
+
+See `.claude/rules/design.md` for the type scale, spacing and component rules. Verification of visuals
+uses offscreen renders (`RenderPreviews`), not screenshots of the live menu bar; screen capture is
+blocked for tooling on this setup.
+
 ## Known limitations
 
 - Not notarised / Developer ID signed; runs on the building Mac. Login-item registration may
   require manual approval for ad-hoc signed builds.
+- Redesigned visuals were inspected as offscreen renders only (light/dark, normal/low/critical/error). The live status item, the system popup material, hover/focus states and VoiceOver output were not observed.
 - Popup UI tests are skipped when the menu bar is auto-hidden; notification permission prompts,
   Login Items approval, and light/dark appearance were not exercised automatically.
 - No app icon asset (menu bar utilities have no Dock icon; Finder shows a generic icon).
@@ -94,6 +101,9 @@ ECC (`ecc@ecc`) is a user-level plugin; nothing is copied into the repo. Used on
 | Agent | `ecc:swift-reviewer` | Review of Swift sources and tests (found alert-gate, polling-guard and test-gap issues; fixed with regression tests, low items noted) |
 | Agent | `ecc:security-reviewer` | Privacy/sandbox/entitlement review (no Critical/High/Medium findings) |
 | Agent | `ecc:performance-optimizer` | Analysis-only energy/CPU review (nothing worth changing) |
+| Skills | `ecc:swiftui-patterns`, `ecc:liquid-glass-design` | Read for the UI redesign. Liquid Glass APIs were deliberately not applied: the `MenuBarExtra` window already supplies the system material, and custom glass would be the "approximation" the design brief rules out |
+| Agent | `ecc:swift-reviewer` (2nd pass) | Redesign review: found the VoiceOver summary dropping state, the 1000 GB rounding edge, optional-shortcut helper |
+| Agent | `ecc:a11y-architect` | Accessibility audit of the redesign: state conveyed by colour only, keyboard focus visibility, decorative text read aloud (fixed) |
 
 Available and referenced in `CLAUDE.md` but not invoked: `tdd-workflow`, `tdd-guide`, `swiftui-patterns`,
 `swift-concurrency-6-2`, `swift-protocol-di-testing`, `swift-build-resolver`, `/build-fix`,

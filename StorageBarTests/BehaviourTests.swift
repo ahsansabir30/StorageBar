@@ -84,7 +84,7 @@ struct PreferencesTests {
         let p = Preferences(defaults: makeDefaults())
         #expect(p.displayFormat == .freeGB)
         #expect(p.refreshInterval == .oneMinute)
-        #expect(p.showIcon == false)
+        #expect(p.showIcon == true)
         #expect(p.warningPercent == 10)
         #expect(p.notificationsEnabled == false)
     }
@@ -127,6 +127,7 @@ struct PreferencesTests {
 
     @Test func iconFormatForcesIconEvenWhenToggleIsOff() {
         let p = Preferences(defaults: makeDefaults())
+        p.showIcon = false
         #expect(p.effectiveShowIcon == false)
         p.displayFormat = .iconAndGB
         #expect(p.effectiveShowIcon)

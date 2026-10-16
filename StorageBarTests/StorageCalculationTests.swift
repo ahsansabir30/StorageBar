@@ -83,6 +83,24 @@ struct FormattingTests {
         #expect(ByteFormatter.compact(bytes) == expected)
     }
 
+    @Test(arguments: [
+        (Int64(494_000_000_000), "494", "GB"),
+        (Int64(271_700_000_000), "271.7", "GB"),
+        (Int64(479_180_000_000), "479.2", "GB"),
+        (Int64(14_820_000_000), "14.8", "GB"),
+        (Int64(1_500_000_000_000), "1.5", "TB"),
+        (Int64(12_000_000), "12", "MB"),
+        (Int64(-5), "0", "MB"),
+        (Int64(999_960_000_000), "1", "TB"),
+        (Int64(999_960_000), "1", "GB"),
+    ])
+    func detailedPartsUseOneConsistentPrecision(bytes: Int64, value: String, unit: String) {
+        let p = ByteFormatter.parts(bytes, locale: Locale(identifier: "en_US"))
+        #expect(p.value == value)
+        #expect(p.unit == unit)
+        #expect(ByteFormatter.detailed(bytes, locale: Locale(identifier: "en_US")) == "\(value) \(unit)")
+    }
+
     private let sample = StorageSnapshot(
         volumeName: "Macintosh HD",
         totalBytes: 500_000_000_000,

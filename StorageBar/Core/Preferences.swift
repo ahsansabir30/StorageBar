@@ -63,7 +63,7 @@ final class Preferences {
         self.defaults = defaults
         displayFormat = defaults.string(forKey: Key.displayFormat).flatMap(DisplayFormat.init) ?? .freeGB
         refreshInterval = RefreshInterval(rawValue: defaults.integer(forKey: Key.refreshInterval)) ?? .oneMinute
-        showIcon = defaults.object(forKey: Key.showIcon) as? Bool ?? false
+        showIcon = defaults.object(forKey: Key.showIcon) as? Bool ?? true
         warningPercent = StorageThresholds(
             warningPercent: defaults.object(forKey: Key.warningPercent) as? Int ?? 10
         ).warningPercent
