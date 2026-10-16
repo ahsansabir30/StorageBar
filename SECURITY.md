@@ -14,7 +14,9 @@ Do not open a public issue for security problems. Include the version, macOS ver
 ## Verifying a download
 Releases are only published when they are Developer ID signed and notarised (see `docs/RELEASING.md`).
 Check the SHA-256 file, `spctl --assess` and `codesign -dv` as described there. The build is
-reproducible: `scripts/verify-reproducible.sh` shows two builds are byte-identical.
+reproducible for a given Xcode version: `scripts/verify-reproducible.sh` shows two builds with the same
+toolchain are byte-identical. Builds from different Xcode versions differ, so compare using the Xcode
+version named in the release notes.
 
 **Current status:** published downloads are **unsigned pre-releases** (no Apple Developer ID, not
 notarised). Verify them with the SHA-256 file and `gh attestation verify <dmg> -R ahsansabir30/StorageBar`, which proves the file was built by this repository's workflow.
