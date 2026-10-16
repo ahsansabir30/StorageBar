@@ -40,10 +40,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             exit(0)
         }
 
-        let model = AppModel()
+        let model = makeModel()
         model.start()
         self.model = model
         controller = StatusItemController(model: model)
+    }
+
+    private func makeModel() -> AppModel {
+        #if DEBUG
+        // Debug builds only: preview low-storage states, e.g. STORAGEBAR_FAKE_FREE_PERCENT=3.
+        if let raw = ProcessInfo.processInfo.environment["STORAGEBAR_FAKE_FREE_PERCENT"], let percent = Double(raw) {
+            return AppModel(provider: DebugFixedProvider(freePercent: percent))
+        }
+        #endif
+        return AppModel()
     }
 
     /// Launching the app again while it runs (Finder, Spotlight) reveals the item's popup, which
@@ -58,3 +68,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller?.tearDown()
     }
 }
+
+#if DEBUG
+/// Reports a fixed free-space percentage of a 500 GB disk. Compiled out of Release builds.
+private struct DebugFixedProvider: StorageProviding {
+    let freePercent: Double
+
+    func snapshot() async throws -> StorageSnapshot {
+        let total: Int64 = 500_000_000_000
+        return StorageSnapshot(
+            volumeName: "Macintosh HD",
+            totalBytes: total,
+            freeBytes: Int64(Double(total) * freePercent / 100),
+            availableForImportantUsageBytes: nil,
+            date: Date()
+        )
+    }
+}
+#endif

@@ -54,6 +54,16 @@ final class StorageBarUITests: XCTestCase {
         XCTAssertTrue(statusItem.isHittable, "Menu bar hid while the popup was open")
     }
 
+    /// Launches with 3 % free (debug override) and checks the item reports the critical state.
+    func testCriticalStorageIsAnnouncedOnTheStatusItem() throws {
+        app.terminate()
+        app.launchEnvironment["STORAGEBAR_FAKE_FREE_PERCENT"] = "3"
+        app.launch()
+        XCTAssertTrue(statusItem.waitForExistence(timeout: 10))
+        XCTAssertFalse(statusItem.title.isEmpty)   // the format (GB or %) is the user's saved choice
+        XCTAssertTrue(statusItem.label.contains("almost full"), "Unexpected label: '\(statusItem.label)'")
+    }
+
     func testThereIsExactlyOneStatusItem() throws {
         XCTAssertTrue(statusItem.waitForExistence(timeout: 10))
         XCTAssertEqual(app.statusItems.matching(identifier: "menuBarLabel").count, 1)

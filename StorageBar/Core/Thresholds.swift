@@ -54,3 +54,16 @@ struct AlertGate: Equatable, Sendable {
         return level
     }
 }
+
+/// How the menu bar item should look for a reading. At the critical level the item turns red and
+/// always shows its icon, even if the user hides it, so a nearly full disk cannot go unnoticed.
+struct MenuBarStyle: Equatable, Sendable {
+    let isCritical: Bool
+    let showsIcon: Bool
+
+    init(snapshot: StorageSnapshot?, thresholds: StorageThresholds, iconPreferred: Bool) {
+        let level = snapshot.map { thresholds.level(forAvailableFraction: $0.availableFraction) } ?? .normal
+        isCritical = level == .critical
+        showsIcon = iconPreferred || isCritical
+    }
+}

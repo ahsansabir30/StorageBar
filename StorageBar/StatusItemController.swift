@@ -75,13 +75,44 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let preferences = model.preferences
         let snapshot = model.monitor.snapshot
 
-        button.title = snapshot.map { preferences.displayFormat.text(for: $0) } ?? "-- GB"
-        button.font = .monospacedDigitSystemFont(ofSize: NSFont.menuBarFont(ofSize: 0).pointSize, weight: .regular)
-        button.image = preferences.effectiveShowIcon
-            ? NSImage(systemSymbolName: "internaldrive", accessibilityDescription: nil)
-            : nil
-        button.setAccessibilityLabel(snapshot.map { preferences.displayFormat.spokenText(for: $0) } ?? "Storage, reading")
+        let style = MenuBarStyle(
+            snapshot: snapshot,
+            thresholds: preferences.thresholds,
+            iconPreferred: preferences.effectiveShowIcon
+        )
+        let text = snapshot.map { preferences.displayFormat.text(for: $0) } ?? "-- GB"
+        let font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.menuBarFont(ofSize: 0).pointSize, weight: .regular)
+
+        button.font = font
+        if style.isCritical {
+            // Template images and plain titles follow the menu bar tint; colour needs explicit
+            // non-template rendering, used only for this warning state.
+            button.attributedTitle = NSAttributedString(
+                string: text, attributes: [.font: font, .foregroundColor: NSColor.systemRed])
+        } else {
+            button.attributedTitle = NSAttributedString()
+            button.title = text
+        }
+
+        if style.showsIcon, let symbol = NSImage(systemSymbolName: "internaldrive", accessibilityDescription: nil) {
+            if style.isCritical {
+                let red = symbol.withSymbolConfiguration(.init(paletteColors: [.systemRed]))
+                red?.isTemplate = false
+                button.image = red
+            } else {
+                button.image = symbol
+            }
+        } else {
+            button.image = nil
+        }
+
+        var spoken = snapshot.map { preferences.displayFormat.spokenText(for: $0) } ?? "Storage, reading"
+        if style.isCritical { spoken += ". Storage is almost full." }
+        button.setAccessibilityLabel(spoken)
     }
+
+    /// The status item's button, for tests.
+    var statusButton: NSStatusBarButton? { statusItem.button }
 
     // MARK: Menu
 
