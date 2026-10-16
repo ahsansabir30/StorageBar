@@ -21,15 +21,19 @@ final class StorageMonitor {
     func refresh() async {
         guard !isRefreshing else { return }
         isRefreshing = true
-        defer { isRefreshing = false }
+        let latest: StorageSnapshot
         do {
-            let latest = try await provider.snapshot()
-            snapshot = latest
-            lastError = nil
-            await onSnapshot?(latest)
+            latest = try await provider.snapshot()
         } catch {
             lastError = (error as? StorageError) ?? .volumeInfoUnavailable
+            isRefreshing = false
+            return
         }
+        snapshot = latest
+        lastError = nil
+        // Release the guard before the callback so a slow notifier cannot stall later refreshes.
+        isRefreshing = false
+        await onSnapshot?(latest)
     }
 
     /// Refreshes now, then every `interval`. Restarts any existing loop.

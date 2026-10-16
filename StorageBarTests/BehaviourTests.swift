@@ -23,16 +23,23 @@ actor RecordingNotifier: Notifying {
     private(set) var posted: [StorageLevel] = []
     private(set) var authorizationRequests = 0
     let grants: Bool
+    private(set) var delivers: Bool
 
-    init(grants: Bool = true) { self.grants = grants }
+    init(grants: Bool = true, delivers: Bool = true) {
+        self.grants = grants
+        self.delivers = delivers
+    }
+
+    func setDelivers(_ value: Bool) { delivers = value }
 
     func requestAuthorization() async -> Bool {
         authorizationRequests += 1
         return grants
     }
 
-    func post(level: StorageLevel, snapshot: StorageSnapshot) async {
+    func post(level: StorageLevel, snapshot: StorageSnapshot) async -> Bool {
         posted.append(level)
+        return delivers
     }
 }
 
@@ -44,6 +51,25 @@ func makeSnapshot(freePercent: Double) -> StorageSnapshot {
         availableForImportantUsageBytes: nil,
         date: Date()
     )
+}
+
+actor AsyncGate {
+    private var isOpen = false
+    private var hasBlocked = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    /// Suspends only the first caller until `open()`; later callers pass straight through.
+    func waitOnce() async {
+        if isOpen || hasBlocked { return }
+        hasBlocked = true
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func open() {
+        isOpen = true
+        waiters.forEach { $0.resume() }
+        waiters.removeAll()
+    }
 }
 
 func makeDefaults() -> UserDefaults {
@@ -155,6 +181,21 @@ struct StorageMonitorTests {
         #expect(count == 1)
     }
 
+    @Test func slowCallbackDoesNotBlockLaterRefreshes() async {
+        let provider = FakeProvider([.success(makeSnapshot(freePercent: 40))])
+        let monitor = StorageMonitor(provider: provider)
+        let gate = AsyncGate()
+        monitor.onSnapshot = { _ in await gate.waitOnce() }
+
+        let first = Task { await monitor.refresh() }
+        while await provider.callCount == 0 { await Task.yield() }
+        while monitor.isRefreshing { await Task.yield() }   // guard released before callback finishes
+        await monitor.refresh()
+        #expect(await provider.callCount == 2)
+        await gate.open()
+        await first.value
+    }
+
     @Test func overlappingRefreshesAreCoalesced() async {
         let provider = FakeProvider([.success(makeSnapshot(freePercent: 40))])
         let monitor = StorageMonitor(provider: provider)
@@ -222,6 +263,30 @@ struct LowStorageAlerterTests {
         await alerter.handle(makeSnapshot(freePercent: 50))
         #expect(await notifier.posted.isEmpty)
     }
+
+    @Test func recoveryWhileDisabledRearmsAlerts() async {
+        let notifier = RecordingNotifier()
+        let prefs = Preferences(defaults: makeDefaults())
+        prefs.notificationsEnabled = true
+        let alerter = LowStorageAlerter(preferences: prefs, notifier: notifier)
+
+        await alerter.handle(makeSnapshot(freePercent: 8))   // warning posted
+        prefs.notificationsEnabled = false
+        await alerter.handle(makeSnapshot(freePercent: 40))  // recovered while alerts are off
+        prefs.notificationsEnabled = true
+        await alerter.handle(makeSnapshot(freePercent: 8))   // must alert again
+        #expect(await notifier.posted == [.warning, .warning])
+    }
+
+    @Test func undeliveredAlertIsRetriedOnNextRefresh() async {
+        let notifier = RecordingNotifier(delivers: false)
+        let alerter = make(notifier: notifier)
+        await alerter.handle(makeSnapshot(freePercent: 8))
+        await notifier.setDelivers(true)
+        await alerter.handle(makeSnapshot(freePercent: 8))
+        await alerter.handle(makeSnapshot(freePercent: 8))
+        #expect(await notifier.posted == [.warning, .warning])
+    }
 }
 
 // MARK: - App model
@@ -278,12 +343,52 @@ struct AppModelTests {
         #expect(!model.launchAtLogin)
     }
 
-    @Test func launchAtLoginFailureIsSurfacedAndStateStaysTrue() {
+    @Test func launchAtLoginFailureIsSurfacedAndStateStaysOff() {
         let login = FakeLoginItem()
         login.shouldFail = true
         let model = make(login: login)
         model.setLaunchAtLogin(true)
         #expect(!model.launchAtLogin)
         #expect(model.loginItemError != nil)
+    }
+
+    @Test func loginItemAwaitingApprovalIsReported() {
+        let login = FakeLoginItem()
+        login.requiresApproval = true
+        let model = make(login: login)
+        #expect(model.loginItemNeedsApproval)
+        #expect(!model.launchAtLogin)
+    }
+
+    @Test func notificationsCanBeToggledOffThenOn() async {
+        let notifier = RecordingNotifier()
+        let model = make(notifier: notifier)
+        await model.setNotifications(enabled: true)
+        await model.setNotifications(enabled: false)
+        #expect(!model.preferences.notificationsEnabled)
+        await model.setNotifications(enabled: true)
+        #expect(model.preferences.notificationsEnabled)
+        #expect(!model.notificationsDenied)
+        #expect(await notifier.authorizationRequests == 2)
+    }
+
+    @Test func startWiresPollingToAlerts() async throws {
+        let notifier = RecordingNotifier()
+        let model = AppModel(
+            provider: FakeProvider([.success(makeSnapshot(freePercent: 3))]),
+            preferences: Preferences(defaults: makeDefaults()),
+            notifier: notifier,
+            loginItem: FakeLoginItem()
+        )
+        model.preferences.notificationsEnabled = true
+        model.start()
+        defer { model.stop() }
+
+        let deadline = ContinuousClock.now + .seconds(3)
+        while await notifier.posted.isEmpty, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(model.monitor.snapshot != nil)
+        #expect(await notifier.posted == [.critical])
     }
 }

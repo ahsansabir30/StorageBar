@@ -7,7 +7,8 @@ import UserNotifications
 protocol Notifying: Sendable {
     /// Asks the system for permission; returns whether notifications may be delivered.
     func requestAuthorization() async -> Bool
-    func post(level: StorageLevel, snapshot: StorageSnapshot) async
+    /// Returns whether the notification was handed to the system.
+    func post(level: StorageLevel, snapshot: StorageSnapshot) async -> Bool
 }
 
 struct SystemNotifier: Notifying {
@@ -15,10 +16,10 @@ struct SystemNotifier: Notifying {
         (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])) ?? false
     }
 
-    func post(level: StorageLevel, snapshot: StorageSnapshot) async {
+    func post(level: StorageLevel, snapshot: StorageSnapshot) async -> Bool {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
-        guard settings.authorizationStatus == .authorized else { return }
+        guard settings.authorizationStatus == .authorized else { return false }
 
         let content = UNMutableNotificationContent()
         content.title = level == .critical ? "Storage almost full" : "Storage running low"
@@ -26,7 +27,12 @@ struct SystemNotifier: Notifying {
             + "(\(snapshot.availablePercent)%) on \(snapshot.volumeName)."
         content.sound = level == .critical ? .default : nil
         // A fixed identifier replaces any earlier low-storage notification instead of stacking.
-        try? await center.add(UNNotificationRequest(identifier: "storagebar.low-storage", content: content, trigger: nil))
+        do {
+            try await center.add(UNNotificationRequest(identifier: "storagebar.low-storage", content: content, trigger: nil))
+            return true
+        } catch {
+            return false
+        }
     }
 }
 
@@ -43,12 +49,21 @@ final class LowStorageAlerter {
     }
 
     func handle(_ snapshot: StorageSnapshot) async {
-        guard preferences.notificationsEnabled else { return }
+        let thresholds = preferences.thresholds
+        guard preferences.notificationsEnabled else {
+            // Keep tracking recovery so re-enabling alerts later starts from the true state.
+            gate.observeRecovery(availableFraction: snapshot.availableFraction, thresholds: thresholds)
+            return
+        }
+        let previous = gate
         guard let level = gate.levelToNotify(
             availableFraction: snapshot.availableFraction,
-            thresholds: preferences.thresholds
+            thresholds: thresholds
         ) else { return }
-        await notifier.post(level: level, snapshot: snapshot)
+        // If the system refused delivery, forget this level so the next refresh retries it.
+        if await notifier.post(level: level, snapshot: snapshot) == false {
+            gate = previous
+        }
     }
 }
 

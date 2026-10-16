@@ -6,7 +6,10 @@ struct StorageBarApp: App {
 
     init() {
         let model = AppModel()
-        model.start()
+        // The unit-test host launches this app too; it must not poll or touch real services.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+            model.start()
+        }
         _model = State(initialValue: model)
     }
 

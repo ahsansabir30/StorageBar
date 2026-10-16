@@ -32,17 +32,23 @@ final class AppModel {
         loginItemNeedsApproval = loginItem.requiresApproval
     }
 
-    /// Begins polling and wake-from-sleep refreshes. Skipped when hosting unit tests.
+    /// Begins polling and wake-from-sleep refreshes. Safe to call again: it replaces the old ones.
     func start() {
-        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         monitor.onSnapshot = { [alerter] snapshot in await alerter.handle(snapshot) }
         restartPolling()
+        wakeTask?.cancel()
         wakeTask = Task { [weak self] in
             let wake = NSWorkspace.shared.notificationCenter.notifications(named: NSWorkspace.didWakeNotification)
             for await _ in wake {
                 await self?.monitor.refresh()
             }
         }
+    }
+
+    func stop() {
+        monitor.stop()
+        wakeTask?.cancel()
+        wakeTask = nil
     }
 
     func restartPolling() {

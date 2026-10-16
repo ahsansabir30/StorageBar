@@ -35,17 +35,20 @@ struct StorageThresholds: Equatable, Sendable {
 struct AlertGate: Equatable, Sendable {
     private(set) var notifiedLevel: StorageLevel = .normal
 
+    /// Re-arms the gate once free space has clearly recovered. Safe to call while alerts are off.
+    mutating func observeRecovery(availableFraction: Double, thresholds: StorageThresholds) {
+        if availableFraction * 100 >= Double(thresholds.warningPercent + 1) {
+            notifiedLevel = .normal
+        }
+    }
+
     mutating func levelToNotify(
         availableFraction: Double,
         thresholds: StorageThresholds
     ) -> StorageLevel? {
+        observeRecovery(availableFraction: availableFraction, thresholds: thresholds)
         let level = thresholds.level(forAvailableFraction: availableFraction)
-        if level == .normal {
-            if availableFraction * 100 >= Double(thresholds.warningPercent + 1) {
-                notifiedLevel = .normal
-            }
-            return nil
-        }
+        if level == .normal { return nil }
         guard level > notifiedLevel else { return nil }
         notifiedLevel = level
         return level

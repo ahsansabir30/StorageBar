@@ -63,7 +63,7 @@ struct StorageCalculationTests {
 
     @Test func missingVolumeThrows() async {
         let provider = VolumeStorageProvider(volumePath: "/definitely/not/a/volume-\(UUID().uuidString)")
-        await #expect(throws: (any Error).self) { try await provider.snapshot() }
+        await #expect(throws: CocoaError.self) { try await provider.snapshot() }
     }
 }
 
