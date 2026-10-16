@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Select the newest installed Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode*.app | grep -vi beta | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version
+          swift --version
+
+      - name: Build (Release)
+        run: |
+          xcodebuild -project StorageBar.xcodeproj -scheme StorageBar -configuration Release \
+            -derivedDataPath "$RUNNER_TEMP/dd" build
+
+      - name: Unit tests
+        run: |
+          xcodebuild -project StorageBar.xcodeproj -scheme StorageBar \
+            -derivedDataPath "$RUNNER_TEMP/dd" -only-testing:StorageBarTests test \
+            | tee "$RUNNER_TEMP/unit.log" | grep -E "Test run with|\*\* TEST|error:" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" "$RUNNER_TEMP/unit.log"
+
+      - name: Static analysis
+        run: |
+          xcodebuild -project StorageBar.xcodeproj -scheme StorageBar -configuration Debug \
+            -derivedDataPath "$RUNNER_TEMP/dd-analyze" analyze \
+            | tee "$RUNNER_TEMP/analyze.log" | grep -E "ANALYZE|error:" || true
+          grep -q "\*\* ANALYZE SUCCEEDED \*\*" "$RUNNER_TEMP/analyze.log"
+
+      # UI tests need Accessibility permission and a visible menu bar, which hosted runners lack,
+      # so they are run locally rather than in CI.
+
+      - name: Package a local (unsigned) DMG to prove the packaging script works
+        run: scripts/build-release.sh
+
+      - name: Upload the unsigned DMG for inspection (not a release artefact)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: StorageBar-unsigned-ci-build
+          path: dist/*LOCAL-UNSIGNED*
+          retention-days: 7
