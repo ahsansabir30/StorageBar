@@ -9,7 +9,7 @@ A tiny native macOS menu bar app that shows how much free space your startup dis
   <img src="docs/images/popup-light.png" width="300" alt="StorageBar popup, light appearance">
   <img src="docs/images/popup-dark.png" width="300" alt="StorageBar popup, dark appearance">
 </p>
-<p align="center"><sub>Renders of the real views. The popup is shown without the system's popover frame and material.</sub></p>
+<p align="center"><sub>Renders of the real views. The popup is shown without the system menu frame and material.</sub></p>
 
 ## For users
 
@@ -34,8 +34,8 @@ Items can also be shown or hidden in System Settings › Menu Bar.
 
 ### Use it
 - **Click** the item for disk name, available space, used space and percentage, a capacity bar and
-  the time of the last update. **Right-click** for About, Preferences and Quit.
-- **Preferences** (popup or right-click): launch at login, refresh interval (default 1 minute),
+  the time of the last update. The popup has Refresh, Storage Settings, Preferences and Quit; About is in Preferences.
+- **Preferences** (from the popup): launch at login, refresh interval (default 1 minute),
   what the menu bar shows (free GB, free %, used %), the disk icon, and optional low-storage alerts
   (warning below 10 %, critical below 5 % by default; macOS asks for notification permission only when
   you turn alerts on).
@@ -48,7 +48,7 @@ Settings report it. *Used* is total minus available. StorageBar only reads the s
 capacity. It never looks at your files.
 
 ### Uninstall
-Quit StorageBar (right-click › Quit), turn off Launch at login if you enabled it, then delete
+Quit StorageBar (from its popup), turn off Launch at login if you enabled it, then delete
 StorageBar from Applications. Optionally remove its settings:
 `~/Library/Containers/com.ahsan.StorageBar`.
 
@@ -92,7 +92,7 @@ produces `dist/StorageBar.dmg`. See [docs/RELEASING.md](docs/RELEASING.md).
 ### Architecture
 `Core/` holds all logic (snapshot, formatting, thresholds, preferences, polling monitor, system
 services) with no UI dependencies. `Views/` is SwiftUI. `StatusItemController` owns the `NSStatusItem`,
-popover, right-click menu and Preferences window. Details and metric definitions:
+the menu that hosts the popup, and the Preferences window. Details and metric definitions:
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Engineering and design rules: `CLAUDE.md` and
 `.claude/rules/`.
 

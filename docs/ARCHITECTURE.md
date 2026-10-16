@@ -5,8 +5,7 @@
 ```
 StorageBarApp (@main)
  └─ AppDelegate ── StatusItemController ── NSStatusItem (autosaveName "StorageBar"; title/icon from AppModel)
-                      ├─ NSPopover(.transient) ── PopupView
-                      ├─ right-click NSMenu: About / Preferences / Quit
+                      ├─ NSMenu with one custom-view item ── PopupView (SwiftUI)
                       └─ NSWindow ── PreferencesView
         views read ──▶ AppModel (composition root)
                              ├─ Preferences        UserDefaults-backed settings
@@ -16,7 +15,7 @@ StorageBarApp (@main)
                              └─ LoginItemControlling ◀── SystemLoginItem (SMAppService.mainApp)
 ```
 
-**Why `NSStatusItem` instead of `MenuBarExtra`:** `MenuBarExtra` cannot be given a name, so macOS keys the item's position/visibility under the generic `Item-0` shared with other apps; it offers no control over popup dismissal (a transient `NSPopover` closes on outside clicks natively); and it has no right-click menu. macOS still owns ordering: users ⌘-drag the item, and AppKit persists the position under the autosave name.
+**Why `NSStatusItem` instead of `MenuBarExtra`:** `MenuBarExtra` cannot be given a name, so macOS keys the item's position/visibility under the generic `Item-0` shared with other apps; it offers no control over popup dismissal (the popup is an `NSMenu` custom-view item because a real menu keeps an auto-hidden menu bar revealed while open, which a popover does not, and it closes natively on outside clicks and Esc). macOS still owns ordering: users ⌘-drag the item, and AppKit persists the position under the autosave name.
 
 `Core/` holds all logic and compiles without UI. Views are thin. OS services sit behind three
 protocols (`StorageProviding`, `Notifying`, `LoginItemControlling`) so tests use fakes.

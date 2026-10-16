@@ -49,7 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Launching the app again while it runs (Finder, Spotlight) reveals the item's popup, which
     /// is the way back if the menu bar item was hidden or dragged away.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        controller?.showPopover()
+        controller?.showMenu()
         return false
     }
 
